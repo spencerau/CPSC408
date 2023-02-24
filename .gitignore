@@ -1,5 +1,5 @@
 
 *.xml
 .DS_Store
-InClass/.idea/.name
-Assignment2/.idea/.name
+InClass/.idea
+Assignment2/.idea
