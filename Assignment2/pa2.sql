@@ -34,11 +34,11 @@ FROM employees;
 SELECT EmployeeId
 FROM employees
 WHERE HireDate BETWEEN '2004-01-01' AND '2004-12-31';
-/* WHERE date BETWEEN '2004%';
+/*WHERE date BETWEEN '2004%';*/
 /*
  6. Write a query to retrieve all records of employees who are a manager (i.e., manager
  is in their job title).
- */
+*/
 SELECT *
 FROM employees
 WHERE Title LIKE '%manager%';
