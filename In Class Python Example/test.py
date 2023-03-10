@@ -133,3 +133,44 @@ def selectNamedPlaceholder():
     for row in result:
         print(row)
     
+
+def selectFetchAll():
+    query = '''
+    SELECT *
+    FROM tweet;
+    '''
+
+    cur_obj.execute(query)
+
+    for row in cur_obj.fetchall():
+        print(row)
+
+
+def selectFetchOne():
+    query = '''
+    SELECT *
+    FROM tweet;
+    '''
+    cur_obj.execute(query)
+    print(cur_obj.fetchone())
+    print("Something")
+    print(cur_obj.fetchone())
+
+
+def insertSQLInjection():
+    #text to insert into table
+    text = "Another tweet\);DROP TABLE Astronaut;--"
+    #insert tweet
+    query = '''
+    INSERT INTO tweet(tweetID, Text)
+    VALUES(20, '%s')
+    ''' % text
+
+    cur_obj.executescript(query)
+    connection.commit()
+
+insertSQLInjection()
+
+
+
+print()
