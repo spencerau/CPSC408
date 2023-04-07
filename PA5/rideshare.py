@@ -165,7 +165,7 @@ def viewRideHistory(id, userType):
     result = cursor.fetchall()
     if result is not None:
         print("Ride History:")
-        print("RideID\tDriverID\tRiderID\tStartLoc\tEndLoc")
+        print("RideID|DriverID|RiderID| StartLoc   |   EndLoc")
         for row in result:
             print(row)
     else:
