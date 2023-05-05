@@ -24,7 +24,8 @@ CREATE TABLE rating_log(
     user VARCHAR(50),
     action VARCHAR(120)
 );
-delimiter $$
+
+DELIMITER $$
 CREATE TRIGGER ratingWarning
     AFTER INSERT ON film
     FOR EACH ROW
@@ -33,10 +34,36 @@ BEGIN
         INSERT INTO rating_log
         VALUES(USER(), 'R movie inserted');
     END IF;
-end;
 END $$
 
-INSERT INTO film VALUES(0,
-                        'test',
-                        'testdescript'
-                    )
+SHOW TRIGGERS FROM sakila LIKE 'film';
+
+-- 6) Create a query to insert an R rated movie into the film table. What record is inserted into
+-- the rating_log table?
+INSERT INTO film(title, language_id, rating)
+VALUES('R Movie', 1, 'R');
+
+DESCRIBE film;
+
+SHOW COLUMNS FROM film LIKE 'rating';
+
+-- 7) Create a stored procedure that returns the release year of a movie as an OUT variable, using
+-- the title of the movie as an IN variable.
+DELIMITER $$
+CREATE PROCEDURE getReleaseYear(
+    IN title VARCHAR(128),
+    OUT releaseYear year
+)
+BEGIN
+    SELECT film.release_year INTO releaseYear
+    FROM film
+    WHERE title = film.title;
+END $$
+
+-- 8) Create a query to call your stored procedure and Select the result
+CALL getReleaseYear('ACADEMY DINOSAUR', @releaseYear);
+SELECT @releaseYear AS releaseYear;
+
+
+
+
