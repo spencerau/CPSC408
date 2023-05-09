@@ -1,4 +1,6 @@
 import tkinter as tk
+from tkinter import ttk
+from tkinter import *
 import tkinter.font as tkFont
 import mysql.connector
 from restaurant import restaurant
@@ -10,15 +12,15 @@ class App:
     conn = mysql.connector.connect(host="localhost",
                                 user="root",
                                 password="cpsc408",
-                                auth_plugin='mysql_native_paclssword')
-                                #database="MadeInChinaYelp")
+                                auth_plugin='mysql_native_paclssword',
+                                database="MadeInChinaYelp")
     
     #create cursor object
     cursor = conn.cursor()
 
-    restaurant = restaurant(cursor)
-    customer = customer(cursor)
-    transactions = transactions(cursor)
+    restaurant = restaurant(cursor, conn)
+    customer = customer(cursor, conn)
+    transactions = transactions(cursor, conn)
 
     # create database and table objects
     def createDatabase(self):
@@ -28,6 +30,7 @@ class App:
         self.customer.createTable()
         self.transactions.createTables()
         self.conn.commit()
+
 
     def __init__(self, root):
         self.createDatabase()
@@ -95,17 +98,17 @@ class App:
         ReservMenu.place(x=210,y=320,width=100,height=35)
         ReservMenu["command"] = self.open_reserv_menu
 
-    def open_restaurants_menu(self):
-        self.create_new_window("Restaurants Menu", [self.viewRestMenu, addRestMenu, modifyRestMenu, self.delete(0)], "View Restaurants", "Add Restaurant", "Modify Restaurant", "Delete Restaurant")
-        
-        def addRestMenu(self):
-            pass
 
-        def modifyRestMenu(self):
-            pass
+    def open_restaurants_menu(self):
+        self.create_new_window("Restaurants Menu", 
+                               [self.viewRestMenu, self.add_restaurant_window, lambda: self.modify(0), lambda: self.delete(0)], 
+                               "View Restaurants", "Add Restaurant", "Modify Restaurant", "Delete Restaurant")
 
     def viewRestMenu(self):
-        self.create_new_window("View Restaurants", [self.viewByID(0), self.ViewAll(0), ViewByCity(0), self.ExportToCSV(0)], "View by ID", "View All", "View by City", "Export to CSV")
+        self.create_new_window("View Restaurants", 
+                               [lambda: self.viewByID(0), lambda: self.ViewAll(0), lambda: self.ExportToCSV(0)], 
+                               "View by ID", "View All", "Export to CSV")
+        # add ViewByCity
         
         def ViewByCity(self):
             query_window = tk.Toplevel()
@@ -138,53 +141,53 @@ class App:
             query_button = tk.Button(query_window, text="Run Query", command=run_query)
             query_button.pack()
 
+
     def open_cust_menu(self):
-        self.create_new_window("Customers Menu", [self.viewCustMenu, addCustMenu, modifyCustMenu, self.delete(1)], "View Customer", "Add Customer", "Modify Customer", "Delete Customer")
-
-        def addCustMenu(self):
-            pass
-
-        def modifyCustMenu(self):
-            pass
+        self.create_new_window("Customers Menu", 
+                               [self.viewCustMenu, self.add_customer_window, lambda: self.modify(1), lambda: self.delete(1)], 
+                               "View Customer", "Add Customer", "Modify Customer", "Delete Customer")
 
     def viewCustMenu(self):
-            self.create_new_window("View Customers", [self.viewByID(1), self.ViewAll(1), self.ExportToCSV(1)], "View by ID", "View All", "Export to CSV")
+            self.create_new_window("View Customers", 
+                                   [lambda: self.viewByID(1), lambda: self.ViewAll(1), lambda: self.ExportToCSV(1)], 
+                                   "View by ID", "View All", "Export to CSV")
+
 
     def open_order_menu(self):
-        self.create_new_window("Orders Menu", [self.viewOrderMenu, addOrderMenu, modifyOrderMenu, self.delete(2)], "View Orders", "Add Order", "Modify Order", "Delete Order")
-
-        def addOrderMenu(self):
-            pass
-
-        def modifyOrderMenu(self):
-            pass
+        self.create_new_window("Orders Menu", 
+                               [self.viewOrderMenu, lambda: self.add("Orders"), lambda: self.modify(2), lambda: self.delete(2)], 
+                               "View Orders", "Add Order", "Modify Order", "Delete Order")
 
     def viewOrderMenu(self):
-        self.create_new_window("View Orders", [self.viewByID(2), self.viewTransByID(2, 1), self.viewTransByID(2, 0), self.ViewAll(2), self.ExportToCSV(2)], "View by ID", "View by Customer ID", "View by Restaurant ID", "View All", "Export to CSV")
+        self.create_new_window("View Orders", 
+                               [lambda: self.viewByID(2), lambda: self.viewTransByID(2, 1), lambda: self.viewTransByID(2, 0), 
+                                lambda: self.ViewAll(2), lambda: self.ExportToCSV(2)], 
+                               "View by ID", "View by C_ID", "View by R_ID", "View All", "Export to CSV")
+
 
     def open_review_menu(self):
-        self.create_new_window("Reviews Menu", [self.viewReviewMenu, addReviewMenu, modifyReviewMenu, self.delete(3)], "View Reviews", "Add Review", "Modify Review", "Delete Review")
+        self.create_new_window("Reviews Menu", 
+                               [self.viewReviewMenu, lambda: self.add("Review"), lambda: self.modify(3), lambda: self.delete(3)], 
+                               "View Reviews", "Add Review", "Modify Review", "Delete Review")
 
-        def addReviewMenu(self):
-            pass
-
-        def modifyReviewMenu(self):
-            pass
-    
     def viewReviewMenu(self):
-        self.create_new_window("View Reviews", [self.viewByID(3), self.viewTransByID(3, 1), self.viewTransByID(3, 0), self.ViewAll(3), self.ExportToCSV(3)], "View by ID", "View by Customer ID", "View by Restaurant ID", "View All", "Export to CSV")
+        self.create_new_window("View Reviews", 
+                                [lambda: self.viewByID(3), lambda: self.viewTransByID(3, 1), lambda: self.viewTransByID(3, 0), 
+                                lambda: self.ViewAll(3), lambda: self.ExportToCSV(3)],
+                                "View by ID", "View by C_ID", "View by R_ID", "View All", "Export to CSV")
+
 
     def open_reserv_menu(self):
-        self.create_new_window("Reservations Menu", [self.viewReservMenu, addReservMenu, modifyReservMenu, self.delete(4)], "View Reservations", "Add Reservation", "Modify Reservation", "Delete Reservation")
-
-        def addReservMenu(self):
-            pass
-
-        def modifyReservMenu(self):
-            pass
+        self.create_new_window("Reservations Menu", 
+                               [self.viewReservMenu, lambda: self.add("Reservation"), lambda: self.modify(4), lambda: self.delete(4)], 
+                               "View Reservations", "Add Reservation", "Modify Reservation", "Delete Reservation")
 
     def viewReservMenu(self):
-        self.create_new_window("View Reservations", [self.viewByID(4), self.viewTransByID(4, 1), self.viewTransByID(4, 0), self.ViewAll(4), self.ExportToCSV(4)], "View by ID", "View by Customer ID", "View by Restaurant ID", "View All", "Export to CSV")
+        self.create_new_window("View Reservations", 
+                               [lambda: self.viewByID(4), lambda: self.viewTransByID(4, 1), lambda: self.viewTransByID(4, 0), 
+                                lambda: self.ViewAll(4), lambda: self.ExportToCSV(4)], 
+                               "View by ID", "View by C_ID", "View by R_ID", "View All", "Export to CSV")
+
 
     # table flag; 0 = Restaurant, 1 = Customer, 2 = orders, 3 = reviews, 4 = reservations
     def viewByID(self, table):
@@ -202,6 +205,22 @@ class App:
         # create a Text widget to display the results
         results_text = tk.Text(query_window)
         results_text.pack()
+
+        # set properties of the new window as desired
+        width = self.width
+        height = self.height
+        screenwidth = self.root.winfo_screenwidth()
+        screenheight = self.root.winfo_screenheight()
+        alignstr = '%dx%d+%d+%d' % (width, height, (screenwidth - width) / 2, (screenheight - height) / 2)
+        query_window.geometry(alignstr)
+        query_window.resizable(width=False, height=False)
+
+        # create a "Back" button
+        back_button = tk.Button(query_window, text="Back", command=lambda: self.show_root(query_window))
+        back_button.place(x=10, y=10, width=50, height=25)
+
+        # hide the root window
+        self.root.withdraw()
 
         def run_query():
             id_value = id_entry.get()
@@ -230,6 +249,7 @@ class App:
         query_button = tk.Button(query_window, text="Run Query", command=run_query)
         query_button.pack()
     
+
     # table flag: 2 = orders, 3 = reviews, 4 = reservations
     # if flag == 0 use restaurant table, if flag == 1 use customer table
     def viewTransByID(self, table, flag):
@@ -252,14 +272,14 @@ class App:
             id_value = id_entry.get()
             # Perform query using the provided ID
             # Display the results
-            if flag == 0:
+            if flag == 1:
                 if table == 2:
                     results = self.transactions.selectOrdersByCustomer(id_value)
                 elif table == 3:
                     results = self.transactions.selectReviewsByCustomer(id_value)
                 elif table == 4:
                     results = self.transactions.selectReservationsByCustomer(id_value)
-            elif flag == 1:
+            elif flag == 0:
                 if table == 2:
                     results = self.transactions.selectOrdersByRestaurant(id_value)
                 elif table == 3:
@@ -276,37 +296,30 @@ class App:
         query_button = tk.Button(query_window, text="Run Query", command=run_query)
         query_button.pack()
 
+
     # table flag: 0 = Restaurant, 1 = Customer, 2 = orders, 3 = reviews, 4 = reservations
     def ViewAll(self, table):
         query_window = tk.Toplevel()
-        query_window.title("View by ID")
-
-        # Label for ID entry
-        id_label = tk.Label(query_window, text="Enter ID:")
-        id_label.pack()
-
-        # Entry widget to input ID
-        id_entry = tk.Entry(query_window)
-        id_entry.pack()
+        query_window.title("View All")
 
         # create a Text widget to display the results
         results_text = tk.Text(query_window)
         results_text.pack()
 
         def run_query():
-            id_value = id_entry.get()
+            #id_value = id_entry.get()
             # Perform query using the provided ID
             # Display the results
             if table == 0:
-                results = self.restaurant.selectAllRestaurants(id_value)
+                results = self.restaurant.selectAllRestaurants()
             elif table == 1:
-                results = self.customer.selectAllCustomers(id_value)
+                results = self.customer.selectAllCustomers()
             elif table == 2:
-                results = self.transactions.selectAllOrders(id_value)
+                results = self.transactions.selectAllOrders()
             elif table == 3:
-                results = self.transactions.selectAllReviews(id_value)
+                results = self.transactions.selectAllReviews()
             elif table == 4:
-                results = self.transactions.selectAllReservations(id_value)
+                results = self.transactions.selectAllReservations()
             else:
                 print("Invalid table flag")
                 return
@@ -320,11 +333,235 @@ class App:
         query_button = tk.Button(query_window, text="Run Query", command=run_query)
         query_button.pack()
 
+
     # table flag: 0 = Restaurant, 1 = Customer, 2 = orders, 3 = reviews, 4 = reservations
     def ExportToCSV(self, table):
         pass
 
+    # CHANGE RESERVATION SO THAT IT PROMPTS FOR TIME AND DATE
+    def add(self, table_name):
+        # Get the column names for the specified table
+        cursor = self.cursor
+        cursor.execute(f"DESCRIBE {table_name}")
+        columns = [row[0] for row in cursor.fetchall()]
+
+        # Create the window
+        window = tk.Toplevel()
+        window.title(f'Add {table_name.capitalize()}')
+
+        screenwidth = root.winfo_screenwidth()
+        screenheight = root.winfo_screenheight()
+        alignstr = '%dx%d+%d+%d' % (self.width, self.height, (screenwidth - self.width) / 2, (screenheight - self.height) / 2)
+        window.geometry(alignstr)
+        window.resizable(width=False, height=False)
+
+        # Define a list of excluded column names
+        excluded_columns = ['Date', 'Time']
+
+        # Remove the excluded columns from the list of columns
+        columns = [col for col in columns if col not in excluded_columns]
+
+        # Create the labels and entry boxes
+        entries = []
+        for i, column in enumerate(columns):
+            if (i != 0):
+                tk.Label(window, text=column.capitalize()).grid(row=i, column=0)
+                entry = tk.Entry(window)
+                entry.grid(row=i, column=1)
+                entries.append(entry)
+
+        # Function to submit new row to database
+        def submit():
+            values = []
+            for entry in entries:
+                values.append(entry.get())
+            if table_name == 'Orders':
+                transactions.insertOrder(self, *values)
+            elif table_name == 'Review':
+                transactions.insertReview(self, *values)
+            elif table_name == 'Reservation':
+                transactions.insertReservation(self, *values)
+            window.destroy()
+        
+        # Create submit button
+        submit_button = tk.Button(window, text="Submit", command=submit)
+        submit_button.grid(row=len(entries)+1, columnspan=2)
+
+        # Hide the calling window
+        self.root.withdraw()
+
+        # Start the window
+        window.protocol('WM_DELETE_WINDOW', lambda: self.root.deiconify())  # Show the calling window if the user clicks 'X'
+        window.mainloop()
+
+
+    def add_restaurant_window(self):
+        # Create the window
+        window = tk.Toplevel()
+        window.title('Add Restaurant')
+
+        # Set the new window size
+        screenwidth = int(self.width * 1.5)
+        screenheight = int(self.height * 1.5)
+        x = (root.winfo_screenwidth() - screenwidth) // 2
+        y = (root.winfo_screenheight() - screenheight) // 2
+        alignstr = f"{screenwidth}x{screenheight}+{x}+{y}"
+        window.geometry(alignstr)
+        window.resizable(width=False, height=False)
+
+
+        # Get the columns from the Restaurant table and exclude the excluded columns
+        self.cursor.execute(f"DESCRIBE Restaurant")
+        columns = [row[0] for row in self.cursor.fetchall()]
+
+        # Define a list of excluded column names
+        #excluded_columns = ['RestaurantID', 'Score', 'OperatingTime_ID', 'Specialty_ID']
+        excluded_columns = ['RestaurantID', 'Score']
+
+        # Remove the excluded columns from the list of columns
+        columns = [col for col in columns if col not in excluded_columns]
+
+        rest_entries = {}
+        for i, col in enumerate(columns):
+            tk.Label(window, text=col).grid(row=i, column=0)
+            if col == 'Price':
+                entry = tk.StringVar(window)
+                entry.set('1')
+                price_options = ['1', '2', '3', '4', '5']
+                rest_dropdown = tk.OptionMenu(window, entry, *price_options)
+                rest_dropdown.grid(row=i, column=1)
+                rest_entries[col] = entry
+            else:
+                tk.Label(window, text=col).grid(row=i, column=0)
+                entry = tk.Entry(window, name=f'{col.lower()}_entry')
+                entry.grid(row=i, column=1)
+                rest_entries[col] = entry
+
+        '''
+        # Create the labels and entry boxes for the OperatingTime table
+        self.cursor.execute(SHOW COLUMNS 
+                            FROM OperatingTime 
+                            WHERE Field NOT IN ('OperatingTimeID')
+                            )
+        op_time_columns = [row[0] for row in self.cursor.fetchall()]
+
+        week = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+        times = []
+        for i, col in enumerate(op_time_columns):
+            if i % 2 == 0:
+                day_index = i // 2
+                day = week[day_index]
+                tk.Label(window, text=f'{day} Open').grid(row=i+len(columns), column=0)
+                open_entry = tk.Entry(window, name=f'{col.lower()}_open_entry')
+                open_entry.grid(row=i+len(columns), column=1)
+                times.append(open_entry)
+
+                tk.Label(window, text=f'{day} Close').grid(row=i+len(columns), column=2)
+                close_entry = tk.Entry(window, name=f'{col.lower()}_close_entry')
+                close_entry.grid(row=i+len(columns), column=3)
+                times.append(close_entry)
+        '''
+
+        # Create the labels and entry boxes for the Specialty table
+        self.cursor.execute('''SHOW COLUMNS 
+                            FROM Specialty 
+                            WHERE Field NOT IN ('SpecialtyID')
+                            ''')
+        food_columns = [row[0] for row in self.cursor.fetchall()]
+
+        '''
+        food = []
+        for i, col in enumerate(food_columns):
+            tk.Label(window, text=col).grid(row=i+len(columns)+len(op_time_columns)+1, column=0)
+            food_entry = tk.Entry(window, name=f'{col.lower()}_entry')
+            food_entry.grid(row=i+len(columns)+len(op_time_columns)+1, column=1)
+            food.append(food_entry.get())
+        '''
+
+        # Create the 'Add Restaurant' button
+        def add_restaurant():
+            # insert a new operating table row
+            #op_time_id = restaurant.insertOperatingTime(times)
+            # insert a new specialty table row
+            #specialty_id = restaurant.insertSpecialty(food[0], food[1])
+            # insert a new restaurant table row
+
+            rest_values = {}
+            for col, entry in rest_entries.items():
+                rest_values[col] = entry.get()
+
+            name = rest_values['Name']
+            price = rest_values['Price']
+            address = rest_values['Address']
+            website = rest_values['Website']
+            operatingTimeID = rest_values['OperatingTime_ID']
+            specialtyID = rest_values['Specialty_ID']
+            rest_id = restaurant.insertRestaurant(self, name, price, address, website, operatingTimeID, specialtyID)
+
+            window.destroy()
+
+        add_button = tk.Button(window, text='Add Restaurant', command=add_restaurant)
+        #add_button.grid(row=len(columns)+len(op_time_columns)+len(food_columns)+2, column=0, columnspan=2)
+        add_button.grid(row=len(columns), column=0, columnspan=2)
+
+        
+    def add_customer_window(self):
+        # Create the window
+        window = tk.Toplevel()
+        window.title('Add Customer')
+
+        add_customer_width = 500
+        add_customer_height = 300
+
+        # Set the new window size
+        screenwidth = root.winfo_screenwidth()
+        screenheight = root.winfo_screenheight()
+        alignstr = f"{add_customer_width}x{add_customer_height}+{int((screenwidth - add_customer_width) / 2)}+{int((screenheight - add_customer_height) / 2)}"
+        window.geometry(alignstr)
+        window.resizable(width=False, height=False)
+
+        # Get the columns from the Customer table and exclude the excluded columns
+        self.cursor.execute(f"DESCRIBE Customer")
+        columns = [row[0] for row in self.cursor.fetchall()]
+
+        # Define a list of excluded column names
+        excluded_columns = ['CustomerID', 'NumVisits']
+
+        # Remove the excluded columns from the list of columns
+        columns = [col for col in columns if col not in excluded_columns]
+
+        # Create the labels and entry boxes for the Customer table
+        customer_entries = {}
+        for i, col in enumerate(columns):
+            tk.Label(window, text=col).grid(row=i, column=0)
+            entry = tk.Entry(window, name=f'{col.lower()}_entry')
+            entry.grid(row=i, column=1)
+            customer_entries[col] = entry
+
+        # Create the 'Add Customer' button
+        def add_customer():
+            # Get the values from the customer entries
+            cust_values = {}
+            for col, entry in customer_entries.items():
+                cust_values[col] = entry.get()
+
+            name = cust_values['Name']
+            email = cust_values['Email']
+            addr = cust_values['Address']
+
+            # Insert the new customer and restaurant into the database
+            customer_id = customer.insertCustomer(self, name, email, addr)
+            
+            # Close the window
+            window.destroy()
+
+        add_button = tk.Button(window, text='Add Customer', command=add_customer)
+        add_button.grid(row=4, column=0, columnspan=2)
+
+
+
     # table flag = 0 = Restaurant, 1 = Customer, 2 = orders, 3 = reviews, 4 = reservations
+    # NEED TO FIX THIS
     def modify(self, table):
         # get column names from table
         if (table == 0):
@@ -340,18 +577,131 @@ class App:
 
         def get_column_names(self, type):
             # Execute SQL query to get column names of table
-            query = f"SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '{type}'"        
+            query = f'''SELECT COLUMN_NAME 
+            FROM INFORMATION_SCHEMA.COLUMNS 
+            WHERE TABLE_NAME = '{type}' AND COLUMN_KEY = ''
+            '''
             self.cursor.execute(query)
             result = self.cursor.fetchall()
             # Return list of column names
             return [x[0] for x in result]
         
-        
+        mod = tk.Toplevel()
+        mod.title("Modify")
 
+        # set properties of the new window as desired
+        width = self.width
+        height = self.height
+        screenwidth = self.root.winfo_screenwidth()
+        screenheight = self.root.winfo_screenheight()
+        alignstr = '%dx%d+%d+%d' % (width, height, (screenwidth - width) / 2, (screenheight - height) / 2)
+        mod.geometry(alignstr)
+        mod.resizable(width=False, height=False)
+
+        # create a "Back" button
+        back_button = tk.Button(mod, text="Back", command=lambda: self.show_root(mod))
+        back_button.place(x=10, y=10, width=50, height=25)
+        
+        # hide the root window
+        #mod.withdraw()
+
+
+        # NEED TO PROMPT FOR ID
+        # Label for ID entry
+        id_label = tk.Label(mod, text="Enter ID:")
+        id_label.pack()
+
+        # Entry widget to input ID
+        id_entry = tk.Entry(mod)
+        id_entry.pack()
+
+        id = id_entry.get()
+
+        # create drop down list of column names
+        column_names = get_column_names(self, type)
+        column_var = tk.StringVar(mod)
+        column_var.set(column_names[0]) # set default value to first column name
+        column_dropdown = ttk.Combobox(mod, textvariable=column_var, values=column_names)
+        column_dropdown.pack()
+
+        # create text box for entering value
+        value_var = tk.StringVar(mod)
+        value_entry = tk.Entry(mod, textvariable=value_var)
+        value_entry.pack()
+
+        def submit(self):
+            column_name = column_var.get()
+            value = value_var.get()
+            if (table == 0):
+                restaurant.updateRestaurant(self, column_name, value, id)
+            elif (table == 1):
+                customer.updateCustomer(self, column_name, value, id)
+            elif (table == 2):
+                transactions.updateOrder(self, column_name, value, id)
+            elif (table == 3):
+                transactions.updateReview(self, column_name, value, id)
+            elif (table == 4):
+                transactions.updateReservation(self, column_name, value, id)
+            mod.destroy()
+
+        # create button to submit modifications
+        submit_button = tk.Button(mod, text="Submit", command=lambda: submit(self))
+        submit_button.pack()
+
+        mod.mainloop()
+        
 
     # table flag: 0 = Restaurant, 1 = Customer, 2 = orders, 3 = reviews, 4 = reservations
     def delete(self, table):
-        pass
+        if (table == 0):
+            type = "Restaurant"
+        elif (table == 1):
+            type = "Customer"
+        elif (table == 2):
+            type = "Orders"
+        elif (table == 3):
+            type = "Review"
+        elif (table == 4):
+            type = "Reservation"
+
+        # get ID from user
+        # delete row with that ID
+        window = tk.Toplevel(self.root)
+
+         # set properties of the new window as desired
+        width = self.width
+        height = self.height
+        screenwidth = self.root.winfo_screenwidth()
+        screenheight = self.root.winfo_screenheight()
+        alignstr = '%dx%d+%d+%d' % (width, height, (screenwidth - width) / 2, (screenheight - height) / 2)
+        window.geometry(alignstr)
+        window.resizable(width=False, height=False)
+
+        # create a label and text box to get the ID from the user
+        id_label = tk.Label(window, text="Enter ID to delete:")
+        id_label.pack()
+        id_entry = tk.Entry(window)
+        id_entry.pack()
+
+        # create a function to execute the SQL DELETE statement when the button is clicked
+        def delete_row():
+            id = id_entry.get()
+            if table == 0:
+                restaurant.deleteRestaurant(self, id)
+            elif table == 1:
+                customer.deleteCustomer(self, id)
+            elif table == 2:
+                transactions.deleteOrder(self, id)
+            elif table == 3:
+                transactions.deleteReview(self, id)
+            elif table == 4:
+                transactions.deleteReservation(self, id)
+            window.destroy()
+
+        # create a button to execute the delete_row function
+        delete_button = tk.Button(window, text="Delete", command=delete_row)
+        delete_button.pack()
+        
 
     def create_new_window(self, title, buttons, *button_texts):
         # create new window
