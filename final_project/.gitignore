@@ -1,2 +1,7 @@
 *.json
 *.pyc
+*.swp
+__pycache__
+build
+dist
+*.spec

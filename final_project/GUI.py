@@ -7,6 +7,23 @@ from restaurant import restaurant
 from customer import customer
 from transactions import transactions
 
+'''
+The final project must incorporate at a minimum the following:
+1. Print/display records from your database/tables.
+2. Query for data/results with various parameters/filters
+3. Create a new record
+4. Delete records (soft delete function would be ideal)
+5. Update records
+6. Make use of transactions (commit & rollback)
+7. Generate reports that can be exported (excel or csv format)
+8. One query must perform an aggregation/group-by clause
+9. One query must contain a subquery.
+10. Two queries must involve joins across at least 3 tables
+11. Enforce referential integrality (PK/FK Constraints)
+12. Include Database Views, Indexes
+13. Use at least 5 entities
+'''
+
 class App:
 
     conn = mysql.connector.connect(host="localhost",
@@ -21,6 +38,9 @@ class App:
     restaurant = restaurant(cursor, conn)
     customer = customer(cursor, conn)
     transactions = transactions(cursor, conn)
+
+    new_window = None  # initialize new_window to None
+    prev_window = None  # initialize prev_window to None
 
     # create database and table objects
     def createDatabase(self):
@@ -55,7 +75,7 @@ class App:
         RestMenu["fg"] = "#000000"
         RestMenu["justify"] = "center"
         RestMenu["text"] = "Restaurants"
-        RestMenu.place(x=210,y=80,width=100,height=35)
+        RestMenu.place(x=210,y=20,width=100,height=35)
         RestMenu["command"] = self.open_restaurants_menu
 
         CustMenu=tk.Button(root)
@@ -65,7 +85,7 @@ class App:
         CustMenu["fg"] = "#000000"
         CustMenu["justify"] = "center"
         CustMenu["text"] = "Customers"
-        CustMenu.place(x=210,y=140,width=100,height=35)
+        CustMenu.place(x=210,y=80,width=100,height=35)
         CustMenu["command"] = self.open_cust_menu
 
         OrdMenu=tk.Button(root)
@@ -75,7 +95,7 @@ class App:
         OrdMenu["fg"] = "#000000"
         OrdMenu["justify"] = "center"
         OrdMenu["text"] = "Orders"
-        OrdMenu.place(x=210,y=200,width=100,height=35)
+        OrdMenu.place(x=210,y=140,width=100,height=35)
         OrdMenu["command"] = self.open_order_menu
 
         RevMenu=tk.Button(root)
@@ -85,7 +105,7 @@ class App:
         RevMenu["fg"] = "#000000"
         RevMenu["justify"] = "center"
         RevMenu["text"] = "Reviews"
-        RevMenu.place(x=210,y=260,width=100,height=35)
+        RevMenu.place(x=210,y=200,width=100,height=35)
         RevMenu["command"] = self.open_review_menu
 
         ReservMenu=tk.Button(root)
@@ -95,8 +115,44 @@ class App:
         ReservMenu["fg"] = "#000000"
         ReservMenu["justify"] = "center"
         ReservMenu["text"] = "Reservations"
-        ReservMenu.place(x=210,y=320,width=100,height=35)
+        ReservMenu.place(x=210,y=260,width=100,height=35)
         ReservMenu["command"] = self.open_reserv_menu
+
+        # create a button for this One query must perform an aggregation/group-by clause
+        # the button returns the average price for each restaurant, calling the ViewAvgPrice function
+        AvgPrice=tk.Button(root)
+        AvgPrice["bg"] = "#e9e9ed"
+        ft = tkFont.Font(family='Times',size=14)
+        AvgPrice["font"] = ft
+        AvgPrice["fg"] = "#000000"
+        AvgPrice["justify"] = "center"
+        AvgPrice["text"] = "Query 8"
+        AvgPrice.place(x=210,y=320,width=100,height=35)
+        AvgPrice["command"] = self.ViewAvgPrice
+
+        # create a button for this One query must contain a subquery.
+        # calls transactions.selectAvgPriceOrders
+        AvgPrice=tk.Button(root)
+        AvgPrice["bg"] = "#e9e9ed"
+        ft = tkFont.Font(family='Times',size=14)
+        AvgPrice["font"] = ft
+        AvgPrice["fg"] = "#000000"
+        AvgPrice["justify"] = "center"
+        AvgPrice["text"] = "Query 9"
+        AvgPrice.place(x=210,y=380,width=100,height=35)
+        AvgPrice["command"] = self.avgPricePerCustomer
+
+        # create a button for this Two queries must involve joins across at least 3 tables
+        # calls findWeebs() and the button is located to the rigth of the Query 8 button
+        AvgPrice=tk.Button(root)    
+        AvgPrice["bg"] = "#e9e9ed"
+        ft = tkFont.Font(family='Times',size=14)
+        AvgPrice["font"] = ft
+        AvgPrice["fg"] = "#000000"
+        AvgPrice["justify"] = "center"
+        AvgPrice["text"] = "Query 10"
+        AvgPrice.place(x=320,y=320,width=100,height=35)
+        AvgPrice["command"] = self.findWeebs
 
 
     def open_restaurants_menu(self):
@@ -106,10 +162,10 @@ class App:
 
     def viewRestMenu(self):
         self.create_new_window("View Restaurants", 
-                               [lambda: self.viewByID(0), lambda: self.ViewAll(0), lambda: self.ExportToCSV(0)], 
-                               "View by ID", "View All", "Export to CSV")
-        # add ViewByCity
+                               [lambda: self.viewByID(0), lambda: self.ViewAll(0), lambda: self.ViewAvgPrice(), lambda: self.ExportToCSV(0)], 
+                               "View by ID", "View All", "View AvgPrice", "Export to CSV")
         
+        # add ViewByCity
         def ViewByCity(self):
             query_window = tk.Toplevel()
             query_window.title("View by ID")
@@ -140,6 +196,116 @@ class App:
             # Button to run the query
             query_button = tk.Button(query_window, text="Run Query", command=run_query)
             query_button.pack()
+
+
+    def ViewAvgPrice(self):
+        # The AVG() function is used to calculate the average cost of all orders made at each restaurant.
+        aggQuery = '''SELECT Restaurant.Name, AVG(Orders.Price) AS Avg_Cost
+                    FROM Orders
+                    JOIN Restaurant ON Orders.Restaurant_ID = Restaurant.RestaurantID
+                    GROUP BY Restaurant.Name;'''
+        query_window = tk.Toplevel()
+        query_window.title("View Average Price per Restaurant")
+
+        # set properties of the new window as desired
+        width = self.width
+        height = self.height
+        screenwidth = self.root.winfo_screenwidth()
+        screenheight = self.root.winfo_screenheight()
+        alignstr = '%dx%d+%d+%d' % (width, height, (screenwidth - width) / 2, (screenheight - height) / 2)
+        query_window.geometry(alignstr)
+        query_window.resizable(width=False, height=False)
+
+        # create a "Back" button
+        back_button = tk.Button(query_window, text="Back", command=lambda: self.show_root(query_window))
+        back_button.pack(anchor='nw')
+
+        # hide the root window
+        self.root.withdraw()
+
+        # create a Text widget to display the results
+        results_text = tk.Text(query_window)
+        results_text.pack()
+
+        # Perform query using the provided ID
+        # Display the results
+        self.cursor.execute(aggQuery)
+        results = self.cursor.fetchall()
+        # Clear the Text widget
+        results_text.delete('1.0', tk.END)
+        # Insert the results into the Text widget
+        for result in results:
+            results_text.insert(tk.END, f"{result}\n")
+
+    def avgPricePerCustomer(self):
+        query_window = tk.Toplevel()
+        query_window.title("View Avg Price per Customer with Over 3 Orders")
+        results = self.transactions.selectAvgPriceOrders()
+
+        # set properties of the new window as desired
+        width = self.width
+        height = self.height
+        screenwidth = self.root.winfo_screenwidth()
+        screenheight = self.root.winfo_screenheight()
+        alignstr = '%dx%d+%d+%d' % (width, height, (screenwidth - width) / 2, (screenheight - height) / 2)
+        query_window.geometry(alignstr)
+        query_window.resizable(width=False, height=False)
+
+        # create a "Back" button
+        back_button = tk.Button(query_window, text="Back", command=lambda: self.show_root(query_window))
+        back_button.pack(anchor='nw')
+
+        # hide the root window
+        self.root.withdraw()
+
+        # create a Text widget to display the results
+        results_text = tk.Text(query_window)
+        results_text.pack()
+
+        # Clear the Text widget
+        results_text.delete('1.0', tk.END)
+        # Insert the results into the Text widget
+        for result in results:
+            results_text.insert(tk.END, f"{result}\n")
+
+    def findWeebs(self):
+        query = '''
+                SELECT DISTINCT Customer.Name
+                FROM Customer
+                JOIN Orders ON Customer.CustomerID = Orders.Customer_ID
+                JOIN Restaurant ON Orders.Restaurant_ID = Restaurant.RestaurantID
+                JOIN Specialty ON Restaurant.Specialty_ID = Specialty.SpecialtyID
+                WHERE Specialty.Culture = 'Japanese';
+                '''
+        query_window = tk.Toplevel()
+        query_window.title("View Weebs")
+        results = self.cursor.execute(query)
+        self.cursor.fetchall()
+        screenwidth = root.winfo_screenwidth()
+        screenheight = root.winfo_screenheight()
+        alignstr = '%dx%d+%d+%d' % (self.width, self.height, (screenwidth - self.width) / 2, (screenheight - self.height) / 2)
+        root.geometry(alignstr)
+        root.resizable(width=False, height=False)
+        
+        # create a "Back" button
+        back_button = tk.Button(query_window, text="Back", command=lambda: self.show_root(query_window))
+        back_button.pack(anchor='nw')
+
+        # create a Text widget to display the results
+        results_text = tk.Text(query_window)
+        results_text.pack()
+
+        # hide the previous window
+        self.root.withdraw()
+
+        # Clear the Text widget
+        results_text.delete('1.0', tk.END)
+        # Insert the results into the Text widget
+        for result in results:
+            results_text.insert(tk.END, f"{result}\n")
+        
+
+
 
 
     def open_cust_menu(self):
@@ -202,9 +368,9 @@ class App:
         id_entry = tk.Entry(query_window)
         id_entry.pack()
 
-        # create a Text widget to display the results
-        results_text = tk.Text(query_window)
-        results_text.pack()
+        # create a Treeview widget to display the results
+        results_treeview = ttk.Treeview(query_window)
+        results_treeview.pack()
 
         # set properties of the new window as desired
         width = self.width
@@ -239,11 +405,22 @@ class App:
             else:
                 print("Invalid table flag")
                 return
-            # Clear the Text widget
-            results_text.delete('1.0', tk.END)
-            # Insert the results into the Text widget
+            
+            # Get the column names from the result set
+            columns = [desc[0] for desc in self.transactions.cursor.description]
+
+            # Clear the Treeview
+            results_treeview.delete(*results_treeview.get_children())
+
+            # Insert the columns into the Treeview
+            results_treeview['columns'] = columns
+            for col in columns:
+                results_treeview.column(col, width=150)
+                results_treeview.heading(col, text=col)
+
+            # Insert the results into the Treeview
             for result in results:
-                results_text.insert(tk.END, f"{result}\n")
+                results_treeview.insert("", "end", values=result)
 
         # Button to run the query
         query_button = tk.Button(query_window, text="Run Query", command=run_query)
@@ -255,6 +432,22 @@ class App:
     def viewTransByID(self, table, flag):
         query_window = tk.Toplevel()
         query_window.title("View by ID")
+
+        # set properties of the new window as desired
+        width = self.width
+        height = self.height
+        screenwidth = self.root.winfo_screenwidth()
+        screenheight = self.root.winfo_screenheight()
+        alignstr = '%dx%d+%d+%d' % (width, height, (screenwidth - width) / 2, (screenheight - height) / 2)
+        query_window.geometry(alignstr)
+        query_window.resizable(width=False, height=False)
+
+        # create a "Back" button
+        back_button = tk.Button(query_window, text="Back", command=lambda: self.show_root(query_window))
+        back_button.place(x=10, y=10, width=50, height=25)
+
+        # hide the root window
+        self.root.withdraw()
 
         # Label for ID entry
         id_label = tk.Label(query_window, text="Enter ID:")
@@ -301,37 +494,55 @@ class App:
     def ViewAll(self, table):
         query_window = tk.Toplevel()
         query_window.title("View All")
+        screenwidth = query_window.winfo_screenwidth()
+        screenheight = query_window.winfo_screenheight()
+        alignstr = '%dx%d+%d+%d' % (self.width, self.height, (screenwidth - self.width) / 2, (screenheight - self.height) / 2)
+        query_window.geometry(alignstr)
+        query_window.resizable(width=False, height=False)
 
-        # create a Text widget to display the results
-        results_text = tk.Text(query_window)
-        results_text.pack()
+        # create a "Back" button
+        back_button = tk.Button(query_window, text="Back", command=lambda: self.show_root(query_window))
+        back_button.pack(anchor='nw')
 
-        def run_query():
-            #id_value = id_entry.get()
-            # Perform query using the provided ID
-            # Display the results
-            if table == 0:
-                results = self.restaurant.selectAllRestaurants()
-            elif table == 1:
-                results = self.customer.selectAllCustomers()
-            elif table == 2:
-                results = self.transactions.selectAllOrders()
-            elif table == 3:
-                results = self.transactions.selectAllReviews()
-            elif table == 4:
-                results = self.transactions.selectAllReservations()
-            else:
-                print("Invalid table flag")
-                return
-            # Clear the Text widget
-            results_text.delete('1.0', tk.END)
-            # Insert the results into the Text widget
-            for result in results:
-                results_text.insert(tk.END, f"{result}\n")
+        # create a Treeview widget to display the results
+        results_treeview = ttk.Treeview(query_window)
+        results_treeview.pack()
 
-        # Button to run the query
-        query_button = tk.Button(query_window, text="Run Query", command=run_query)
-        query_button.pack()
+        # hide the previous window
+        self.prev_window.withdraw()
+
+        #id_value = id_entry.get()
+        # Perform query using the provided ID
+        # Display the results
+        if table == 0:
+            results = self.restaurant.selectAllRestaurants()
+        elif table == 1:
+            results = self.customer.selectAllCustomers()
+        elif table == 2:
+            results = self.transactions.selectAllOrders()
+        elif table == 3:
+            results = self.transactions.selectAllReviews()
+        elif table == 4:
+            results = self.transactions.selectAllReservations()
+        else:
+            print("Invalid table flag")
+            return
+        
+        # Get the column names from the result set
+        columns = [desc[0] for desc in self.transactions.cursor.description]
+
+        # Clear the Treeview
+        results_treeview.delete(*results_treeview.get_children())
+
+        # Insert the columns into the Treeview
+        results_treeview['columns'] = columns
+        for col in columns:
+            results_treeview.column(col, width=150)
+            results_treeview.heading(col, text=col)
+
+        # Insert the results into the Treeview
+        for result in results:
+            results_treeview.insert("", "end", values=result)
 
 
     # table flag: 0 = Restaurant, 1 = Customer, 2 = orders, 3 = reviews, 4 = reservations
@@ -411,15 +622,26 @@ class App:
 
 
         # Get the columns from the Restaurant table and exclude the excluded columns
-        self.cursor.execute(f"DESCRIBE Restaurant")
+        #self.cursor.execute(f"DESCRIBE Restaurant")
+        # Get the column names for Restaurant and Specialty tables
+        self.cursor.execute('''SELECT column_name
+                            FROM information_schema.columns
+                            WHERE table_name = 'Restaurant' OR table_name = 'Specialty' ''')
         columns = [row[0] for row in self.cursor.fetchall()]
+        self.cursor.fetchall()
 
         # Define a list of excluded column names
         #excluded_columns = ['RestaurantID', 'Score', 'OperatingTime_ID', 'Specialty_ID']
-        excluded_columns = ['RestaurantID', 'Score']
+        excluded_columns = ['RestaurantID', 'Score', 'Specialty_ID', 'SpecialtyID']
 
         # Remove the excluded columns from the list of columns
         columns = [col for col in columns if col not in excluded_columns]
+
+        columns = ['Price'] + [col for col in columns if col not in excluded_columns and col != 'Price']
+        columns = ['Name'] + [col for col in columns if col not in excluded_columns and col != 'Name']
+        columns = [col for col in columns if col not in excluded_columns and col != 'OperatingTime_ID'] + ['OperatingTime_ID']
+
+
 
         rest_entries = {}
         for i, col in enumerate(columns):
@@ -462,22 +684,6 @@ class App:
                 times.append(close_entry)
         '''
 
-        # Create the labels and entry boxes for the Specialty table
-        self.cursor.execute('''SHOW COLUMNS 
-                            FROM Specialty 
-                            WHERE Field NOT IN ('SpecialtyID')
-                            ''')
-        food_columns = [row[0] for row in self.cursor.fetchall()]
-
-        '''
-        food = []
-        for i, col in enumerate(food_columns):
-            tk.Label(window, text=col).grid(row=i+len(columns)+len(op_time_columns)+1, column=0)
-            food_entry = tk.Entry(window, name=f'{col.lower()}_entry')
-            food_entry.grid(row=i+len(columns)+len(op_time_columns)+1, column=1)
-            food.append(food_entry.get())
-        '''
-
         # Create the 'Add Restaurant' button
         def add_restaurant():
             # insert a new operating table row
@@ -495,7 +701,10 @@ class App:
             address = rest_values['Address']
             website = rest_values['Website']
             operatingTimeID = rest_values['OperatingTime_ID']
-            specialtyID = rest_values['Specialty_ID']
+            specialty = rest_values['Specialty']
+            culture = rest_values['Culture']
+            specialtyID = restaurant.insertSpecialty(self, specialty, culture)
+
             rest_id = restaurant.insertRestaurant(self, name, price, address, website, operatingTimeID, specialtyID)
 
             window.destroy()
@@ -559,7 +768,6 @@ class App:
         add_button.grid(row=4, column=0, columnspan=2)
 
 
-
     # table flag = 0 = Restaurant, 1 = Customer, 2 = orders, 3 = reviews, 4 = reservations
     # NEED TO FIX THIS
     def modify(self, table):
@@ -600,10 +808,11 @@ class App:
 
         # create a "Back" button
         back_button = tk.Button(mod, text="Back", command=lambda: self.show_root(mod))
-        back_button.place(x=10, y=10, width=50, height=25)
-        
-        # hide the root window
-        #mod.withdraw()
+        #back_button.place(x=10, y=10, width=50, height=25)
+        back_button.pack(anchor='nw')
+
+        # hide the previous window
+        self.prev_window.withdraw()
 
 
         # NEED TO PROMPT FOR ID
@@ -726,16 +935,19 @@ class App:
             button = tk.Button(new_window, text=button_text, command=buttons[i])
             button.place(x=200, y=100 + i*60, width=120, height=35)
         
-        # hide the root window
-        self.root.withdraw()
+        # hide the previous window
+        self.prev_window.withdraw() if self.prev_window else self.root.withdraw()
         
-        # show the new window
-        new_window.mainloop()
+        # store a reference to the new window
+        self.prev_window = new_window
 
     def show_root(self, window):
-        # destroy the current window and show the root window
+        # destroy the current window
         window.destroy()
-        self.root.deiconify()
+        
+        # show the previous window
+        self.prev_window = None
+        self.root.deiconify() if not self.prev_window else self.prev_window.deiconify()
 
 
 root = tk.Tk()

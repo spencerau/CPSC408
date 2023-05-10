@@ -190,3 +190,22 @@ class transactions:
                             ''', (RestaurantID,))
         return self.cursor.fetchall()
     
+    # subquery to get the average price of all orders made by a customer, where the customer has made at least 3 orders:
+    def selectAvgPriceOrders(self):
+        self.cursor.execute('''SELECT Customer_ID, AVG(Price) AS AveragePrice
+                            FROM Orders
+                            WHERE Customer_ID IN (
+                                SELECT Customer_ID
+                                FROM Orders
+                                GROUP BY Customer_ID
+                                HAVING COUNT(*) >= 3
+                            )
+                            GROUP BY Customer_ID;
+                            ''' )
+        return self.cursor.fetchall()
+    
+
+
+    
+
+    

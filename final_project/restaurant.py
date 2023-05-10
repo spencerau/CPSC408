@@ -106,10 +106,12 @@ class restaurant:
         if self.cursor.rowcount > 0:
             return self.cursor.fetchone()[0]
 
+        self.cursor.fetchall()
+
         # insert a specialty into the database
         self.cursor.execute('''INSERT INTO Specialty(Specialty, Culture)
                             VALUES (%s, %s)''', (specialty, culture))
-        self.cursor.commit()
+        self.conn.commit()
         return self.cursor.lastrowid
         
     def insertRestaurant(self, name, price, address, website, operatingTimeID, specialtyID):
@@ -161,3 +163,5 @@ class restaurant:
                             WHERE Address LIKE %s
                             ''', (city,))
         return self.cursor.fetchall()
+    
+
