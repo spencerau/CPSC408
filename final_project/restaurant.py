@@ -134,10 +134,11 @@ class restaurant:
     # update a restaurant via restaurant ID
     def updateRestaurant(self, r_id, column, value):
         # update the restaurant with the given ID
-        self.cursor.execute('''UPDATE Restaurant
-                            SET %s = %s
-                            WHERE RestaurantID = %s
-                            ''', (column, value, r_id))
+        query = f'''UPDATE Restaurant 
+                SET {column} = %s 
+                WHERE RestaurantID = %s '''
+        self.cursor.execute(query, (value, r_id))
+        self.cursor.execute(query)
         # commit the changes
         self.conn.commit()
 

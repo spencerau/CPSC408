@@ -94,21 +94,21 @@ class transactions:
                             WHERE ReservationID = %s''', (reservationID))
         self.conn.commit()
 
-    def updateOrder(self, column, value, orderID):
+    def updateOrder(self, orderID, column, value):
         self.cursor.execute('''UPDATE Orders 
                             SET %s = %s 
                             WHERE OrderID = %s
                             ''', (column, value, orderID))
         self.conn.commit()
 
-    def updateReview(self, column, value, reviewID):
+    def updateReview(self, reviewID, column, value):
         self.cursor.execute('''UPDATE Review 
                             SET %s = %s 
                             WHERE ReviewID = %s
                             ''', (column, value, reviewID))
         self.conn.commit()
     
-    def updateReservation(self, column, value, reservationID):
+    def updateReservation(self, reservationID, column, value):
         self.cursor.execute('''UPDATE Reservation 
                             SET %s = %s 
                             WHERE ReservationID = %s
@@ -192,7 +192,7 @@ class transactions:
     
     # subquery to get the average price of all orders made by a customer, where the customer has made at least 3 orders:
     def selectAvgPriceOrders(self):
-        self.cursor.execute('''SELECT Customer_ID, AVG(Price) AS AveragePrice
+        self.cursor.execute('''SELECT Customer_ID, AVG(Price) AS Average$Spent
                             FROM Orders
                             WHERE Customer_ID IN (
                                 SELECT Customer_ID

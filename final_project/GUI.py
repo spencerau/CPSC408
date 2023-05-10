@@ -223,23 +223,33 @@ class App:
         # hide the root window
         self.root.withdraw()
 
-        # create a Text widget to display the results
-        results_text = tk.Text(query_window)
-        results_text.pack()
+        # create a Treeview widget to display the results
+        results_treeview = ttk.Treeview(query_window, show='headings')
+        results_treeview.pack()
 
         # Perform query using the provided ID
         # Display the results
         self.cursor.execute(aggQuery)
         results = self.cursor.fetchall()
-        # Clear the Text widget
-        results_text.delete('1.0', tk.END)
-        # Insert the results into the Text widget
+        # Get the column names from the result set
+        columns = [desc[0] for desc in self.transactions.cursor.description]
+
+        # Clear the Treeview
+        results_treeview.delete(*results_treeview.get_children())
+
+        # Insert the columns into the Treeview
+        results_treeview['columns'] = columns
+        for col in columns:
+            results_treeview.column(col, width=150)
+            results_treeview.heading(col, text=col)
+
+        # Insert the results into the Treeview
         for result in results:
-            results_text.insert(tk.END, f"{result}\n")
+            results_treeview.insert("", "end", values=result)
 
     def avgPricePerCustomer(self):
         query_window = tk.Toplevel()
-        query_window.title("View Avg Price per Customer with Over 3 Orders")
+        query_window.title("View Avg $ Spent per Customer with Over 3 Orders")
         results = self.transactions.selectAvgPriceOrders()
 
         # set properties of the new window as desired
@@ -258,15 +268,25 @@ class App:
         # hide the root window
         self.root.withdraw()
 
-        # create a Text widget to display the results
-        results_text = tk.Text(query_window)
-        results_text.pack()
+        # create a Treeview widget to display the results
+        results_treeview = ttk.Treeview(query_window, show='headings')
+        results_treeview.pack()
 
-        # Clear the Text widget
-        results_text.delete('1.0', tk.END)
-        # Insert the results into the Text widget
+        # Get the column names from the result set
+        columns = [desc[0] for desc in self.transactions.cursor.description]
+
+        # Clear the Treeview
+        results_treeview.delete(*results_treeview.get_children())
+
+        # Insert the columns into the Treeview
+        results_treeview['columns'] = columns
+        for col in columns:
+            results_treeview.column(col, width=150)
+            results_treeview.heading(col, text=col)
+
+        # Insert the results into the Treeview
         for result in results:
-            results_text.insert(tk.END, f"{result}\n")
+            results_treeview.insert("", "end", values=result)
 
     def findWeebs(self):
         query = '''
@@ -304,9 +324,6 @@ class App:
         for result in results:
             results_text.insert(tk.END, f"{result}\n")
         
-
-
-
 
     def open_cust_menu(self):
         self.create_new_window("Customers Menu", 
@@ -369,7 +386,7 @@ class App:
         id_entry.pack()
 
         # create a Treeview widget to display the results
-        results_treeview = ttk.Treeview(query_window)
+        results_treeview = ttk.Treeview(query_window, show='headings')
         results_treeview.pack()
 
         # set properties of the new window as desired
@@ -458,8 +475,8 @@ class App:
         id_entry.pack()
 
         # create a Text widget to display the results
-        results_text = tk.Text(query_window)
-        results_text.pack()
+        results_treeview = ttk.Treeview(query_window, show='headings')
+        results_treeview.pack()
 
         def run_query():
             id_value = id_entry.get()
@@ -479,11 +496,21 @@ class App:
                     results = self.transactions.selectReviewsByRestaurant(id_value)
                 elif table == 4:
                     results = self.transactions.selectReservationsByRestaurant(id_value)
-            # Clear the Text widget
-            results_text.delete('1.0', tk.END)
-            # Insert the results into the Text widget
+            # Get the column names from the result set
+            columns = [desc[0] for desc in self.transactions.cursor.description]
+
+            # Clear the Treeview
+            results_treeview.delete(*results_treeview.get_children())
+
+            # Insert the columns into the Treeview
+            results_treeview['columns'] = columns
+            for col in columns:
+                results_treeview.column(col, width=150)
+                results_treeview.heading(col, text=col)
+
+            # Insert the results into the Treeview
             for result in results:
-                results_text.insert(tk.END, f"{result}\n")
+                results_treeview.insert("", "end", values=result)
 
         # Button to run the query
         query_button = tk.Button(query_window, text="Run Query", command=run_query)
@@ -505,7 +532,7 @@ class App:
         back_button.pack(anchor='nw')
 
         # create a Treeview widget to display the results
-        results_treeview = ttk.Treeview(query_window)
+        results_treeview = ttk.Treeview(query_window, show='headings')
         results_treeview.pack()
 
         # hide the previous window
@@ -566,6 +593,14 @@ class App:
         window.geometry(alignstr)
         window.resizable(width=False, height=False)
 
+        # create a "Back" button
+        #back_button = tk.Button(window, text="Back", command=lambda: self.show_root(window))
+        #back_button.place(x=10, y=10, width=50, height=25)
+        #back_button.pack(anchor='nw')
+
+        # hide the previous window
+        #self.prev_window.withdraw()
+
         # Define a list of excluded column names
         excluded_columns = ['Date', 'Time']
 
@@ -620,6 +655,11 @@ class App:
         window.geometry(alignstr)
         window.resizable(width=False, height=False)
 
+        # create a "Back" button
+        #back_button = tk.Button(window, text="Back", command=lambda: self.show_root(window))
+
+        # hide the previous window
+        #self.prev_window.withdraw()
 
         # Get the columns from the Restaurant table and exclude the excluded columns
         #self.cursor.execute(f"DESCRIBE Restaurant")
@@ -640,8 +680,6 @@ class App:
         columns = ['Price'] + [col for col in columns if col not in excluded_columns and col != 'Price']
         columns = ['Name'] + [col for col in columns if col not in excluded_columns and col != 'Name']
         columns = [col for col in columns if col not in excluded_columns and col != 'OperatingTime_ID'] + ['OperatingTime_ID']
-
-
 
         rest_entries = {}
         for i, col in enumerate(columns):
@@ -728,6 +766,13 @@ class App:
         alignstr = f"{add_customer_width}x{add_customer_height}+{int((screenwidth - add_customer_width) / 2)}+{int((screenheight - add_customer_height) / 2)}"
         window.geometry(alignstr)
         window.resizable(width=False, height=False)
+
+        # create a "Back" button
+        #back_button = tk.Button(window, text="Back", command=lambda: self.show_root(window))
+        #back_button.pack(anchor='nw')
+
+        # hide the previous window
+        #self.prev_window.withdraw()
 
         # Get the columns from the Customer table and exclude the excluded columns
         self.cursor.execute(f"DESCRIBE Customer")
@@ -842,15 +887,15 @@ class App:
             column_name = column_var.get()
             value = value_var.get()
             if (table == 0):
-                restaurant.updateRestaurant(self, column_name, value, id)
+                restaurant.updateRestaurant(self, id, column_name, value)
             elif (table == 1):
-                customer.updateCustomer(self, column_name, value, id)
+                customer.updateCustomer(self, id, column_name, value)
             elif (table == 2):
-                transactions.updateOrder(self, column_name, value, id)
+                transactions.updateOrder(self, id, column_name, value)
             elif (table == 3):
-                transactions.updateReview(self, column_name, value, id)
+                transactions.updateReview(self, id, column_name, value)
             elif (table == 4):
-                transactions.updateReservation(self, column_name, value, id)
+                transactions.updateReservation(self, id, column_name, value)
             mod.destroy()
 
         # create button to submit modifications
@@ -885,6 +930,14 @@ class App:
         alignstr = '%dx%d+%d+%d' % (width, height, (screenwidth - width) / 2, (screenheight - height) / 2)
         window.geometry(alignstr)
         window.resizable(width=False, height=False)
+
+        # create a "Back" button
+        back_button = tk.Button(window, text="Back", command=lambda: self.show_root(window))
+        #back_button.place(x=10, y=10, width=50, height=25)
+        back_button.pack(anchor='nw')
+
+        # hide the previous window
+        self.prev_window.withdraw()
 
         # create a label and text box to get the ID from the user
         id_label = tk.Label(window, text="Enter ID to delete:")

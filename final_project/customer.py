@@ -31,7 +31,7 @@ class customer:
         return self.cursor.lastrowid
 
 
-    def updateCustomer(self, column, value, customerID):
+    def updateCustomer(self, customerID, column, value):
         self.cursor.execute('''UPDATE Customer
                             SET {} = '{}'
                             WHERE CustomerID = %s'''.format(column, value), (customerID,))
