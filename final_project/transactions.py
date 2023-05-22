@@ -60,6 +60,58 @@ class transactions:
                             FOREIGN KEY (Customer_ID) REFERENCES Customer(CustomerID))
                             ''')
         
+    def createViews(self):
+        # Assuming you have already established a connection and created a cursor object
+        view_name = 'order_view'
+        # Execute the query to check if the view exists
+        self.cursor.execute(f'''SELECT COUNT(*) 
+                                FROM INFORMATION_SCHEMA.VIEWS 
+                                WHERE TABLE_NAME = '{view_name}' AND TABLE_SCHEMA = 'MadeInChinaYelp' ''')
+        # Retrieve the result
+        result = self.cursor.fetchone()
+        # Check if the count = 0
+        if result[0] == 0:
+            self.cursor.execute('''CREATE VIEW order_view AS
+                                SELECT o.OrderID, o.Price, o.Date, o.Time, r.Name AS RestaurantName, c.Name AS CustomerName, o.Restaurant_ID, o.Customer_ID
+                                FROM Orders o
+                                JOIN Restaurant r ON o.Restaurant_ID = r.RestaurantID
+                                JOIN Customer c ON o.Customer_ID = c.CustomerID;
+                                ''')
+        
+        # Assuming you have already established a connection and created a cursor object
+        view_name = 'review_view'
+        # Execute the query to check if the view exists
+        self.cursor.execute(f'''SELECT COUNT(*) 
+                                FROM INFORMATION_SCHEMA.VIEWS 
+                                WHERE TABLE_NAME = '{view_name}' AND TABLE_SCHEMA = 'MadeInChinaYelp' ''')
+        # Retrieve the result
+        result = self.cursor.fetchone()
+        # Check if the count = 0
+        if result[0] == 0:
+            self.cursor.execute('''CREATE VIEW review_view AS
+                                SELECT r.ReviewID, r.Score, r.Website, res.Name AS RestaurantName, c.Name AS CustomerName, r.Restaurant_ID, r.Customer_ID
+                                FROM Review r
+                                JOIN Restaurant res ON r.Restaurant_ID = res.RestaurantID
+                                JOIN Customer c ON r.Customer_ID = c.CustomerID;
+                                ''')
+        
+        # Assuming you have already established a connection and created a cursor object
+        view_name = 'reservation_view'
+        # Execute the query to check if the view exists
+        self.cursor.execute(f'''SELECT COUNT(*) 
+                                FROM INFORMATION_SCHEMA.VIEWS 
+                                WHERE TABLE_NAME = '{view_name}' AND TABLE_SCHEMA = 'MadeInChinaYelp' ''')
+        # Retrieve the result
+        result = self.cursor.fetchone()
+        # Check if the count = 0
+        if result[0] == 0:
+            self.cursor.execute('''CREATE VIEW reservation_view AS
+                                SELECT res.ReservationID, res.Date, res.Time, res.PartySize, r.Name AS RestaurantName, c.Name AS CustomerName, res.Restaurant_ID, res.Customer_ID
+                                FROM Reservation res
+                                JOIN Restaurant r ON res.Restaurant_ID = r.RestaurantID
+                                JOIN Customer c ON res.Customer_ID = c.CustomerID;
+                                ''')
+        
     def insertOrder(self, price, RestaurantID, customerID):
         self.cursor.execute('''INSERT INTO Orders(Price, Date, Time, Restaurant_ID, Customer_ID)
                             VALUES (%s, NOW(), NOW(), %s, %s)''', 
@@ -69,11 +121,18 @@ class transactions:
     def insertReview(self, score, website, RestaurantID, customerID):
         self.cursor.execute('''INSERT INTO Review(Score, Website, Restaurant_ID, Customer_ID)
                             VALUES (%s, %s, %s, %s)''', (score, website, RestaurantID, customerID))
+        # update the score for restaurant
+        self.cursor.execute('''UPDATE Restaurant
+                            SET Score = (SELECT AVG(Score) 
+                                        FROM Review
+                                        WHERE Restaurant_ID = %s) 
+                            WHERE RestaurantID = %s
+                            ''', (RestaurantID, RestaurantID))
         self.conn.commit()
     
-    def insertReservation(self, partySize, RestaurantID, customerID):
-        self.cursor.execute('''INSERT INTO Reservation(Date, Time, PartySize, Restaurant_ID, Customer_ID)
-                            VALUES (NOW(), NOW(), %s, %s, %s)''', (partySize, RestaurantID, customerID))
+    def insertReservation(self, date, time, partySize, RestaurantID, customerID):
+        self.cursor.execute('''INSERT INTO Reservation(`Date`, `Time`, PartySize, Restaurant_ID, Customer_ID)
+                       VALUES (%s, %s, %s, %s, %s)''', (date, time, partySize, RestaurantID, customerID))
         self.conn.commit()
 
     def deleteOrder(self, orderID):
@@ -95,117 +154,110 @@ class transactions:
         self.conn.commit()
 
     def updateOrder(self, orderID, column, value):
-        self.cursor.execute('''UPDATE Orders 
-                            SET %s = %s 
-                            WHERE OrderID = %s
-                            ''', (column, value, orderID))
+        query = f'''
+            UPDATE Orders
+            SET {column} = %s
+            WHERE OrderID = %s
+        '''
+        self.cursor.execute(query, (value, orderID))
+        # Commit the changes
         self.conn.commit()
 
     def updateReview(self, reviewID, column, value):
-        self.cursor.execute('''UPDATE Review 
-                            SET %s = %s 
-                            WHERE ReviewID = %s
-                            ''', (column, value, reviewID))
+        query = f'''
+            UPDATE Review
+            SET {column} = %s
+            WHERE ReviewID = %s
+        '''
+        self.cursor.execute(query, (value, reviewID))
+        # Commit the changes
         self.conn.commit()
     
     def updateReservation(self, reservationID, column, value):
-        self.cursor.execute('''UPDATE Reservation 
-                            SET %s = %s 
-                            WHERE ReservationID = %s
-                            ''', (column, value, reservationID))
+        query = f'''
+            UPDATE Reservation
+            SET {column} = %s
+            WHERE ReservationID = %s
+        '''
+        self.cursor.execute(query, (value, reservationID))
+        # Commit the changes
         self.conn.commit()
     
     def selectOrder(self, orderID):
-        self.cursor.execute('''SELECT * 
-                            FROM Orders 
+        self.cursor.execute('''SELECT OrderID, RestaurantName, CustomerName, Price, Date, Time
+                            FROM order_view 
                             WHERE OrderID = %s
                             ''', (orderID,))
         return self.cursor.fetchall()
 
     def selectReview(self, reviewID):
-        self.cursor.execute('''SELECT * 
-                            FROM Review 
+        self.cursor.execute('''SELECT ReviewID, RestaurantName, CustomerName  Score, Website
+                            FROM review_view 
                             WHERE ReviewID = %s
                             ''', (reviewID,))
         return self.cursor.fetchall()
 
     def selectReservation(self, reservationID):
-        self.cursor.execute('''SELECT * 
-                            FROM Reservation 
+        self.cursor.execute('''SELECT ReservationID, Date, Time, PartySize, RestaurantName, CustomerName
+                            FROM reservation_view 
                             WHERE ReservationID = %s
                             ''', (reservationID,))
         return self.cursor.fetchall()
     
     def selectAllOrders(self):
-        self.cursor.execute('''SELECT * FROM Orders''')
+        self.cursor.execute('''SELECT OrderID, Price, Date, Time, RestaurantName, CustomerName
+                            FROM order_view''')
         return self.cursor.fetchall()
     
     def selectAllReviews(self):
-        self.cursor.execute('''SELECT * FROM Review''')
+        self.cursor.execute('''SELECT ReviewID, Score, Website, RestaurantName, CustomerName 
+                            FROM review_view''')
         return self.cursor.fetchall()
     
     def selectAllReservations(self):
-        self.cursor.execute('''SELECT * FROM Reservation''')
+        self.cursor.execute('''SELECT ReservationID, Date, Time, PartySize, RestaurantName, CustomerName
+                            FROM reservation_view''')
         return self.cursor.fetchall()
     
     def selectOrdersByCustomer(self, customerID):
-        self.cursor.execute('''SELECT * 
-                            FROM Orders 
+        self.cursor.execute('''SELECT OrderID, Price, Date, Time, RestaurantName, CustomerName
+                            FROM order_view 
                             WHERE Customer_ID = %s
                             ''', (customerID,))
         return self.cursor.fetchall()
     
     def selectReviewsByCustomer(self, customerID):
-        self.cursor.execute('''SELECT * 
-                            FROM Review 
+        self.cursor.execute('''SELECT ReviewID, Score, Website, RestaurantName, CustomerName 
+                            FROM review_view 
                             WHERE Customer_ID = %s
                             ''', (customerID,))
         return self.cursor.fetchall()
     
     def selectReservationsByCustomer(self, customerID):
-        self.cursor.execute('''SELECT * 
-                            FROM Reservation 
+        self.cursor.execute('''SELECT ReservationID, Date, Time, PartySize, RestaurantName, CustomerName
+                            FROM reservation_view 
                             WHERE Customer_ID = %s
                             ''', (customerID,))
         return self.cursor.fetchall()
     
     def selectOrdersByRestaurant(self, RestaurantID):
-        self.cursor.execute('''SELECT * 
-                            FROM Orders 
+        self.cursor.execute('''SELECT OrderID, Price, Date, Time, RestaurantName, CustomerName
+                            FROM order_view 
                             WHERE Restaurant_ID = %s
                             ''', (RestaurantID,))
         return self.cursor.fetchall()
     
     def selectReviewsByRestaurant(self, RestaurantID):
-        self.cursor.execute('''SELECT * 
-                            FROM Review 
+        self.cursor.execute('''SELECT ReviewID, Score, Website, RestaurantName, CustomerName 
+                            FROM review_view 
                             WHERE Restaurant_ID = %s
                             ''', (RestaurantID,))
         return self.cursor.fetchall()
     
     def selectReservationsByRestaurant(self, RestaurantID):
-        self.cursor.execute('''SELECT * 
-                            FROM Reservation 
+        self.cursor.execute('''SELECT ReservationID, Date, Time, PartySize, RestaurantName, CustomerName
+                            FROM reservation_view 
                             WHERE Restaurant_ID = %s
                             ''', (RestaurantID,))
         return self.cursor.fetchall()
-    
-    # subquery to get the average price of all orders made by a customer, where the customer has made at least 3 orders:
-    def selectAvgPriceOrders(self):
-        self.cursor.execute('''SELECT Customer_ID, AVG(Price) AS Average$Spent
-                            FROM Orders
-                            WHERE Customer_ID IN (
-                                SELECT Customer_ID
-                                FROM Orders
-                                GROUP BY Customer_ID
-                                HAVING COUNT(*) >= 3
-                            )
-                            GROUP BY Customer_ID;
-                            ''' )
-        return self.cursor.fetchall()
-    
-
-
-    
-
     

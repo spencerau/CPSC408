@@ -5,3 +5,7 @@ __pycache__
 build
 dist
 *.spec
+*.pptx
+*.csv
+Yelp_API_Stuff.py
+*.meta

@@ -10,30 +10,6 @@ class restaurant:
         self.conn = conn
 
     def createTable(self):
-
-         # operatingTime(operatingTimeID, Monday, Tuesday, Wednesday, etc)
-        # operatingTime_ID is a unique INT primary key
-        # Monday, Tuesday, Wednesday, etc are columns with the rows being the operating times, 
-        # opening times and closing times are stored in the same column as TIME
-        self.cursor.execute('''CREATE TABLE IF NOT EXISTS OperatingTime (
-                            OperatingTimeID INT NOT NULL AUTO_INCREMENT,
-                            MondayOpen TIME,
-                            MondayClose TIME,
-                            TuesdayOpen TIME,
-                            TuesdayClose TIME,
-                            WednesdayOpen TIME,
-                            WednesdayClose TIME,
-                            ThursdayOpen TIME,
-                            ThursdayClose TIME,
-                            FridayOpen TIME,
-                            FridayClose TIME,
-                            SaturdayOpen TIME,
-                            SaturdayClose TIME,
-                            SundayOpen TIME,
-                            SundayClose TIME,
-                            PRIMARY KEY (OperatingTimeID))
-                            ''')
-
         # Specialty(Specialty_ID, Specialty)
         # Food/Specialty(FoodID, Name, Culture) F_ID is a unique INT
         # Name and Culture are Strings
@@ -44,11 +20,10 @@ class restaurant:
                             PRIMARY KEY (SpecialtyID))
                             ''')
 
-        # Restaurant(RestaurantID, Score, Price, Address, Culture, OpenTime, CloseTime, Website, SpecialtyID*)
+        # Restaurant(RestaurantID, Score, Price, Address, Culture, Website, SpecialtyID*)
         # R_ID and S_ID are unique INTs
         # Score, price are DECIMAL or DOUBLEs
         # Address, Culture, and Website are Strings
-        # OperatingTimeID is a foreign key to OperatingTime
         # SpecialtyID is a foreign key to Specialty
         self.cursor.execute('''CREATE TABLE IF NOT EXISTS Restaurant (
                             RestaurantID INT NOT NULL AUTO_INCREMENT, 
@@ -57,44 +32,50 @@ class restaurant:
                             Price ENUM('1', '2', '3', '4', '5'),
                             Address VARCHAR(255), 
                             Website VARCHAR(255),
-                            OperatingTime_ID INT,
                             Specialty_ID INT,
                             PRIMARY KEY (RestaurantID),
-                            FOREIGN KEY (OperatingTime_ID) REFERENCES OperatingTime(OperatingTimeID),
                             FOREIGN KEY (Specialty_ID) REFERENCES Specialty(SpecialtyID))
                             ''')
-    
-    # insert a new operating time into the database using an array of times as parameter
-    def insertOperatingTime(self, times):
-        try:
-            self.cursor.execute('''INSERT INTO OperatingTime (
-                                MondayOpen, MondayClose, 
-                                TuesdayOpen, TuesdayClose, 
-                                WednesdayOpen, WednesdayClose, 
-                                ThursdayOpen, ThursdayClose, 
-                                FridayOpen, FridayClose, 
-                                SaturdayOpen, SaturdayClose, 
-                                SundayOpen, SundayClose) 
-                                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)''',
-                                (times[0] if times[0] is not None else None,
-                                times[1] if times[1] is not None else None,
-                                times[2] if times[2] is not None else None,
-                                times[3] if times[3] is not None else None,
-                                times[4] if times[4] is not None else None,
-                                times[5] if times[5] is not None else None,
-                                times[6] if times[6] is not None else None,
-                                times[7] if times[7] is not None else None,
-                                times[8] if times[8] is not None else None,
-                                times[9] if times[9] is not None else None,
-                                times[10] if times[10] is not None else None,
-                                times[11] if times[11] is not None else None,
-                                times[12] if times[12] is not None else None,
-                                times[13] if times[13] is not None else None))
-            self.cursor.commit()
-            return self.cursor.lastrowid
-        except:
-            self.cursor.rollback()
-            return -1
+        
+    def createViews(self):
+        # Assuming you have already established a connection and created a cursor object
+        view_name = 'restaurant_view'
+
+        # Execute the query to check if the view exists
+        self.cursor.execute(f'''SELECT COUNT(*) 
+                                FROM INFORMATION_SCHEMA.VIEWS 
+                                WHERE TABLE_NAME = '{view_name}' AND TABLE_SCHEMA = 'MadeInChinaYelp' ''')
+
+        # Retrieve the result
+        result = self.cursor.fetchone()
+
+        # Check if the count = 0
+        if result[0] == 0:
+            self.cursor.execute('''CREATE VIEW restaurant_view AS
+                                SELECT RestaurantID, Name, Score, Price, Address, Website, s.Specialty, s.Culture
+                                FROM Restaurant r
+                                JOIN Specialty s ON r.Specialty_ID = s.SpecialtyID
+                                ''')
+
+    def createIndex(self):
+        # Check if the index exists
+        query = '''
+                SELECT COUNT(*)
+                FROM INFORMATION_SCHEMA.STATISTICS
+                WHERE TABLE_SCHEMA = 'MadeInChinaYelp'
+                AND TABLE_NAME = 'Restaurant'
+                AND INDEX_NAME = 'restaurant_name_index'
+                '''
+        self.cursor.execute(query)
+        result = self.cursor.fetchone()[0]
+
+        if result == 0:
+            # Create the index
+            create_index_query = '''
+                CREATE INDEX restaurant_name_index ON Restaurant (Name)
+            '''
+            self.cursor.execute(create_index_query)
+            self.conn.commit()
     
     def insertSpecialty(self, specialty, culture):
         # check if the specialty already exists
@@ -114,38 +95,68 @@ class restaurant:
         self.conn.commit()
         return self.cursor.lastrowid
         
-    def insertRestaurant(self, name, price, address, website, operatingTimeID, specialtyID):
+    def insertRestaurant(self, name, price, address, website, specialtyID):
         # insert a restaurant into the database
-        self.cursor.execute('''INSERT INTO Restaurant(Name, Price, Address, Website, OperatingTime_ID, Specialty_ID)
-                            VALUES (%s, %s, %s, %s, %s, %s)''', (name, price, address, website, operatingTimeID, specialtyID))
+        self.cursor.execute('''INSERT INTO Restaurant(Name, Price, Address, Website, Specialty_ID)
+                            VALUES (%s, %s, %s, %s, %s)''', (name, price, address, website, specialtyID))
         self.conn.commit()
         return self.cursor.lastrowid
 
     # delete a restaurant via restaurant ID
     def deleteRestaurant(self, r_id):
-        # delete the restaurant with the given ID
-        self.cursor.execute('''DELETE 
-                            FROM Restaurant 
-                            WHERE RestaurantID = %s
+        try:
+            # Start the transaction
+            self.cursor.execute("START TRANSACTION")
+            # Delete orders associated with the restaurant
+            self.cursor.execute('''DELETE 
+                                FROM Orders 
+                                WHERE Restaurant_ID = %s
+                                ''', (r_id,))
+
+            # Delete reservations associated with the restaurant
+            self.cursor.execute('''DELETE 
+                            FROM Reservation
+                            WHERE Restaurant_ID = %s
                             ''', (r_id,))
-        # commit the changes
-        self.conn.commit()
+
+            # Delete reviews associated with the restaurant
+            self.cursor.execute('''DELETE 
+                                FROM Review
+                                WHERE Restaurant_ID = %s
+                                ''', (r_id,))
+
+            # Delete the restaurant from the Restaurant table
+            self.cursor.execute('''DELETE 
+                                FROM Restaurant 
+                                WHERE RestaurantID = %s
+                                ''', (r_id,))
+            # Commit the transaction
+            self.conn.commit()
+            print("Deletion completed successfully.")
+        except Exception as e:
+            # Rollback the transaction in case of an error
+            self.conn.rollback()
+            print(f"An error occurred: {e}. Transaction rolled back.")
     
     # update a restaurant via restaurant ID
     def updateRestaurant(self, r_id, column, value):
-        # update the restaurant with the given ID
-        query = f'''UPDATE Restaurant 
-                SET {column} = %s 
-                WHERE RestaurantID = %s '''
-        self.cursor.execute(query, (value, r_id))
-        self.cursor.execute(query)
-        # commit the changes
-        self.conn.commit()
+        try:
+            # Update the restaurant with the given ID
+            query = f'''
+                UPDATE Restaurant
+                SET {column} = %s
+                WHERE RestaurantID = %s
+            '''
+            self.cursor.execute(query, (value, r_id))
+            # Commit the changes
+            self.conn.commit()
+        except Exception as e:
+            print(f"An error occurred while updating the restaurant: {e}")
 
     def selectRestaurant(self, r_id):
         # view the restaurant with the given ID
         self.cursor.execute('''SELECT * 
-                            FROM Restaurant 
+                            FROM restaurant_view 
                             WHERE RestaurantID = %s
                             ''', (r_id,))
         return self.cursor.fetchall()
@@ -153,16 +164,52 @@ class restaurant:
     def selectAllRestaurants(self):
         # view all restaurants
         self.cursor.execute('''SELECT * 
-                            FROM Restaurant
+                            FROM restaurant_view
                             ''')
         return self.cursor.fetchall()
-
-    def selectByCity(self, city):
-        # view all restaurants in a given city
+    
+    def selectBySpecialty(self, specialty):
+        # view all restaurants with a given specialty
         self.cursor.execute('''SELECT * 
-                            FROM Restaurant
-                            WHERE Address LIKE %s
-                            ''', (city,))
+                            FROM restaurant_view
+                            WHERE Specialty = %s
+                            ''', (specialty,))
         return self.cursor.fetchall()
     
+    def findNewByCulture(self, customer_id, culture):
+        # Execute the SQL query to retrieve the restaurants the customer hasn't tried
+        query = '''
+            SELECT r.RestaurantID, r.Name, s.Specialty, r.Score, r.Price, r.Website
+            FROM Restaurant r
+            LEFT JOIN Orders o 
+                ON r.RestaurantID = o.Restaurant_ID AND o.Customer_ID = %s
+            LEFT JOIN Specialty s
+                ON r.Specialty_ID = s.SpecialtyID
+            WHERE o.OrderID IS NULL AND s.Culture = %s
+        '''
+        self.cursor.execute(query, (customer_id, culture))
+        return self.cursor.fetchall()
+    
+    def getOrders(self):
+        # Execute the SQL query to retrieve the aggregated information
+        query = '''
+                SELECT r.Name AS RestaurantName, COUNT(o.OrderID) AS OrderCount
+                FROM Restaurant r
+                INNER JOIN Orders o ON r.RestaurantID = o.Restaurant_ID
+                GROUP BY r.RestaurantID, r.Name
+                '''
 
+        self.cursor.execute(query)
+
+        # Fetch all the rows returned by the query
+        return self.cursor.fetchall()
+    
+    def selectByName(self, name):
+        # view all restaurants with a given name
+        self.cursor.execute('''SELECT RestaurantID, Name, Score, Price, Address, Website, s.Specialty, s.Culture
+                            FROM Restaurant USE INDEX (restaurant_name_index)
+                            INNER JOIN Specialty s ON Restaurant.Specialty_ID = s.SpecialtyID
+                            WHERE Name = %s
+                            ''', (name,))
+        return self.cursor.fetchall()
+    
